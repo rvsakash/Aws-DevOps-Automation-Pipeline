@@ -1,0 +1,28 @@
+---
+- name: Update apt index securely
+  apt:
+    update_cache: yes
+    force_apt_get: yes
+
+- name: Install required baseline packages
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+      - python3-pip
+    state: present
+
+- name: Install Docker Engine
+  apt:
+    name: docker.io
+    state: present
+  notify: Restart Docker Service
+
+- name: Ensure Docker is enabled on boot
+  service:
+    name: docker
+    state: started
+    enabled: yes

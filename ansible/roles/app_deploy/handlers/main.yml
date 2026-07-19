@@ -1,0 +1,19 @@
+---
+- name: Refresh Docker Container
+  block:
+    - name: Purge old container version
+      docker_container:
+        name: "{{ vault_container_name }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Launch upgraded container version
+      docker_container:
+        name: "{{ vault_container_name }}"
+        image: nginx:alpine
+        state: started
+        restart_policy: always
+        published_ports:
+          - "{{ vault_published_port }}"
+        volumes:
+          - "/home/ubuntu/app:/usr/share/nginx/html"

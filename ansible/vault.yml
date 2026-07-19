@@ -1,0 +1,2 @@
+vault_container_name: "my-devops-app"
+vault_published_port: "80:80"

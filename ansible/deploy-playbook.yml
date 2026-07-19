@@ -1,0 +1,13 @@
+---
+- name: Production Deployment with Rolling Updates and Roles
+  hosts: tags_Role_webserver
+  become: yes
+  gather_facts: yes
+  serial: 1
+
+  vars_files:
+    - vault.yml
+
+  roles:
+    - docker_install
+    - app_deploy

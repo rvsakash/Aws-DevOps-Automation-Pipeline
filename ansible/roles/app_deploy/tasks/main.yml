@@ -1,0 +1,17 @@
+---
+- name: Manage App Directory Structure
+  file:
+    path: /home/ubuntu/app
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: '0755'
+
+- name: Deploy application source code
+  copy:
+    src: ../app/index.html
+    dest: /home/ubuntu/app/index.html
+    owner: ubuntu
+    group: ubuntu
+    mode: '0644'
+  notify: Refresh Docker Container
