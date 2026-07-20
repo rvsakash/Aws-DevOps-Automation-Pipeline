@@ -25,10 +25,13 @@ pipeline {
                     sh 'terraform init'
                     sh 'terraform apply -auto-approve'
                 }
-                // We generate the inventory from the root directory to avoid path confusion
-                sh 'echo "[webserver]" > ansible/hosts'
-                sh 'echo "[tags_Role_webserver]" >> ansible/hosts' // This satisfies both host patterns
-                sh 'terraform -chdir=terraform output -json instance_public_ips | jq -r ".[]" >> ansible/hosts'
+                // We create the hosts file precisely inside the ansible directory by changing directory first
+                dir('ansible') {
+                    sh 'echo "[webserver]" > hosts'
+                    sh 'echo "[tags_Role_webserver]" >> hosts'
+                    sh 'terraform -chdir=../terraform output -json instance_public_ips | jq -r ".[]" >> hosts'
+                    sh 'cat hosts' // This will print the file in logs so we can verify live!
+                }
             }
         }
 
