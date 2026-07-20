@@ -24,10 +24,11 @@ pipeline {
                 dir('terraform') {
                     sh 'terraform init'
                     sh 'terraform apply -auto-approve'
-                    // This dynamically creates the [webserver] inventory group block for Ansible
-                    sh 'echo "[webserver]" > ../ansible/hosts'
-                    sh 'terraform output -json instance_public_ips | jq -r ".[]" >> ../ansible/hosts'
                 }
+                // We generate the inventory from the root directory to avoid path confusion
+                sh 'echo "[webserver]" > ansible/hosts'
+                sh 'echo "[tags_Role_webserver]" >> ansible/hosts' // This satisfies both host patterns
+                sh 'terraform -chdir=terraform output -json instance_public_ips | jq -r ".[]" >> ansible/hosts'
             }
         }
 
