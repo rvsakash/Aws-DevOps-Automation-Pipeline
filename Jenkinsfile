@@ -24,7 +24,9 @@ pipeline {
                 dir('terraform') {
                     sh 'terraform init'
                     sh 'terraform apply -auto-approve'
-                    sh 'terraform output -json instance_public_ips | jq -r ".[]" > ../ansible/hosts'
+                    // This dynamically creates the [webserver] inventory group block for Ansible
+                    sh 'echo "[webserver]" > ../ansible/hosts'
+                    sh 'terraform output -json instance_public_ips | jq -r ".[]" >> ../ansible/hosts'
                 }
             }
         }
@@ -56,4 +58,3 @@ pipeline {
         }
     }
 }
-
