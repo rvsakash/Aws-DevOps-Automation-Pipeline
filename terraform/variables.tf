@@ -10,7 +10,7 @@ variable "ami_id" {
 
 variable "instance_type" {
   type    = string
-  default = "t2.micro"
+  default = "t3.micro"  # यहाँ हमने t2.micro को बदलकर t3.micro कर दिया है
 }
 
 variable "key_name" {

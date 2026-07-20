@@ -91,7 +91,7 @@ resource "aws_security_group" "web_sg" {
 resource "aws_instance" "web_servers" {
   count                  = 2
   ami                    = var.ami_id
-  instance_type          = var.instance_type
+  instance_type          = "t3.micro"  # यहाँ हमने सीधे t3.micro सेट कर दिया है जो फ्री टियर में वैलिड है
   key_name               = var.key_name
   subnet_id              = aws_subnet.public_subnet.id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
