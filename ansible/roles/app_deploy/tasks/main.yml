@@ -14,4 +14,14 @@
     owner: ubuntu
     group: ubuntu
     mode: '0644'
-  notify: Refresh Docker Container
+
+- name: Ensure dynamic container environment is fully synchronized
+  community.docker.docker_container:
+    name: devops-web-app
+    image: nginx:alpine
+    state: started
+    restart: yes
+    ports:
+      - "80:80"
+    volumes:
+      - /home/ubuntu/app/index.html:/usr/share/nginx/html/index.html
