@@ -9,6 +9,7 @@ pipeline {
 
     triggers {
         githubPush()
+        pollSCM('* * * * *') 
     }
 
     stages {
@@ -23,7 +24,7 @@ pipeline {
                 dir('terraform') {
                     sh 'terraform init'
                     sh 'terraform apply -auto-approve'
-                    sh 'terraform output -raw instance_ips > ../ansible/hosts'
+                    sh 'terraform output -json instance_public_ips | jq -r ".[]" > ../ansible/hosts'
                 }
             }
         }
@@ -48,8 +49,11 @@ pipeline {
             echo 'Pipeline Completed Successfully! App Is Live!'
         }
         failure {
-            dir('ansible') { sh 'rm -f .vault_pass.txt' }
+            dir('ansible') { 
+                sh 'rm -f .vault_pass.txt' 
+            }
             echo 'Pipeline Failed. Please check Jenkins logs.'
         }
     }
 }
+
