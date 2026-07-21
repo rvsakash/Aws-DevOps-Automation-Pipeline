@@ -12,6 +12,7 @@ provider "aws" {
   region = var.aws_region
 }
 
+# 1. Core VPC Setup
 resource "aws_vpc" "devops_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
@@ -22,16 +23,31 @@ resource "aws_vpc" "devops_vpc" {
   }
 }
 
-resource "aws_subnet" "public_subnet" {
+# 2. Public Subnet 1 (Zone A)
+resource "aws_subnet" "public_subnet_1" {
   vpc_id                  = aws_vpc.devops_vpc.id
   cidr_block              = "10.0.1.0/24"
+  availability_zone       = "${var.aws_region}a"
   map_public_ip_on_launch = true
   tags = {
-    Name    = "devops-public-subnet"
+    Name    = "devops-public-subnet-1"
     Project = "aws-devops-automation"
   }
 }
 
+# 3. Public Subnet 2 (Zone B - Load Balancer Mandatory Requirement)
+resource "aws_subnet" "public_subnet_2" {
+  vpc_id                  = aws_vpc.devops_vpc.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "${var.aws_region}b"
+  map_public_ip_on_launch = true
+  tags = {
+    Name    = "devops-public-subnet-2"
+    Project = "aws-devops-automation"
+  }
+}
+
+# 4. Internet Gateway
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.devops_vpc.id
   tags = {
@@ -40,6 +56,7 @@ resource "aws_internet_gateway" "igw" {
   }
 }
 
+# 5. Route Table Routing Rules
 resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.devops_vpc.id
   route {
@@ -52,11 +69,18 @@ resource "aws_route_table" "public_rt" {
   }
 }
 
-resource "aws_route_table_association" "public_assoc" {
-  subnet_id      = aws_subnet.public_subnet.id
+# 6. Associate Route Table with Both Subnets
+resource "aws_route_table_association" "public_assoc_1" {
+  subnet_id      = aws_subnet.public_subnet_1.id
   route_table_id = aws_route_table.public_rt.id
 }
 
+resource "aws_route_table_association" "public_assoc_2" {
+  subnet_id      = aws_subnet.public_subnet_2.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
+# 7. Security Group (Added Extra Monitoring Inbound Port 9100 for Node Exporter)
 resource "aws_security_group" "web_sg" {
   name   = "web-server-sg"
   vpc_id = aws_vpc.devops_vpc.id
@@ -75,6 +99,13 @@ resource "aws_security_group" "web_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 9100  # Prometheus Monitoring Metrics Source Port
+    to_port     = 9100
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -88,12 +119,13 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
+# 8. Web Server Instances Allocation (Distributed across Zone A)
 resource "aws_instance" "web_servers" {
   count                  = 2
   ami                    = var.ami_id
   instance_type          = "t3.micro"
   key_name               = var.key_name
-  subnet_id              = aws_subnet.public_subnet.id
+  subnet_id              = aws_subnet.public_subnet_1.id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
 
   tags = {
@@ -101,4 +133,77 @@ resource "aws_instance" "web_servers" {
     Project = "aws-devops-automation"
     Role    = "webserver"
   }
+}
+
+# =================================================================
+# BLUE-GREEN ZERO-DOWNTIME NETWORKING FRAMEWORK
+# =================================================================
+
+# 9. Application Load Balancer Setup
+resource "aws_lb" "app_alb" {
+  name               = "devops-architecture-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.web_sg.id]
+  subnets            = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
+
+  tags = {
+    Project = "aws-devops-automation"
+  }
+}
+
+# 10. Blue Target Group (Active State)
+resource "aws_lb_target_group" "blue_tg" {
+  name     = "tg-blue-environment"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.devops_vpc.id
+
+  health_check {
+    path                = "/"
+    port                = "80"
+    protocol            = "HTTP"
+    interval            = 15
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+# 11. Green Target Group (Staging State)
+resource "aws_lb_target_group" "green_tg" {
+  name     = "tg-green-environment"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.devops_vpc.id
+
+  health_check {
+    path                = "/"
+    port                = "80"
+    protocol            = "HTTP"
+    interval            = 15
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+# 12. ALB Listener Routing Configuration (Default Route mapping to Blue)
+resource "aws_lb_listener" "http_listener" {
+  load_balancer_arn = aws_lb.app_alb.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.blue_tg.arn
+  }
+}
+
+# 13. Dynamic Target Attachments for EC2 Web Servers (Currently Map to Blue)
+resource "aws_lb_target_group_attachment" "web_attach" {
+  count            = 2
+  target_group_arn = aws_lb_target_group.blue_tg.arn
+  target_id        = aws_instance.web_servers[count.index].id
+  port             = 80
 }
