@@ -119,9 +119,9 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
-# 8. Web Server Instances Allocation (Distributed across Zone A)
+# 8. Web Server Instances Allocation (Scale Up Count to 4 for Global Synchronization)
 resource "aws_instance" "web_servers" {
-  count                  = 2
+  count                  = 4  # <-- CHANGED: Increased from 2 to 4 to cover all running instances
   ami                    = var.ami_id
   instance_type          = "t3.micro"
   key_name               = var.key_name
@@ -200,9 +200,9 @@ resource "aws_lb_listener" "http_listener" {
   }
 }
 
-# 13. Dynamic Target Attachments for EC2 Web Servers (Currently Map to Blue)
+# 13. Dynamic Target Attachments for All 4 EC2 Web Servers (Map explicitly using length function)
 resource "aws_lb_target_group_attachment" "web_attach" {
-  count            = 2
+  count            = length(aws_instance.web_servers) # <-- CHANGED: Dynamically binds all 4 servers to ALB
   target_group_arn = aws_lb_target_group.blue_tg.arn
   target_id        = aws_instance.web_servers[count.index].id
   port             = 80
