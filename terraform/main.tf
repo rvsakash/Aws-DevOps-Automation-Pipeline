@@ -102,3 +102,11 @@ resource "aws_instance" "web_servers" {
     Role    = "webserver"
   }
 }
+
+# =================================================================
+# DYNAMIC OUTPUT BLOCK FOR FREE-TIER ZERO BILL SOLUTION
+# =================================================================
+output "instance_public_ips" {
+  description = "Dynamic public IPs of both web servers to bypass Elastic IP charges"
+  value       = aws_instance.web_servers[*].public_ip
+}

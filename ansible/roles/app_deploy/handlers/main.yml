@@ -1,14 +1,30 @@
 ---
+- name: Manage App Directory Structure
+  file:
+    path: /home/ubuntu/app
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: '0755'
+
+- name: Deploy application source code
+  copy:
+    src: ../app/index.html
+    dest: /home/ubuntu/app/index.html
+    owner: ubuntu
+    group: ubuntu
+    mode: '0644'
+
 - name: Refresh Docker Container
   block:
     - name: Purge old container version
-      docker_container:
+      community.docker.docker_container:
         name: "{{ vault_container_name }}"
         state: absent
       ignore_errors: yes
 
     - name: Launch upgraded container version
-      docker_container:
+      community.docker.docker_container:
         name: "{{ vault_container_name }}"
         image: nginx:alpine
         state: started
