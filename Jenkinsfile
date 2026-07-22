@@ -66,3 +66,5 @@ pipeline {
         }
     }
 }
+
+// Force push change trigger
