@@ -121,12 +121,13 @@ resource "aws_security_group" "web_sg" {
 
 # 8. Web Server Instances Allocation (Stable 2 Nodes Set)
 resource "aws_instance" "web_servers" {
-  count                  = 2  # <-- FIXED: Back to 2 stable nodes
-  ami                    = var.ami_id
-  instance_type          = "t3.micro"
-  key_name               = var.key_name
-  subnet_id              = aws_subnet.public_subnet_1.id
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  count                       = 2  
+  ami                         = var.ami_id
+  instance_type               = "t3.micro"
+  key_name                    = var.key_name
+  subnet_id                   = aws_subnet.public_subnet_1.id
+  vpc_security_group_ids      = [aws_security_group.web_sg.id]
+  associate_public_ip_address = true
 
   tags = {
     Name    = "devops-webserver-${count.index + 1}"
@@ -139,9 +140,9 @@ resource "aws_instance" "web_servers" {
 # BLUE-GREEN ZERO-DOWNTIME NETWORKING FRAMEWORK
 # =================================================================
 
-# 9. Application Load Balancer Setup
+# 9. Application Load Balancer Setup (Renamed to v2 to avoid conflicts)
 resource "aws_lb" "app_alb" {
-  name               = "devops-architecture-alb"
+  name               = "devops-architecture-alb-v2"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.web_sg.id]
@@ -152,9 +153,9 @@ resource "aws_lb" "app_alb" {
   }
 }
 
-# 10. Blue Target Group (Active State)
+# 10. Blue Target Group (Renamed to v2)
 resource "aws_lb_target_group" "blue_tg" {
-  name     = "tg-blue-environment"
+  name     = "tg-blue-environment-v2"
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.devops_vpc.id
@@ -170,9 +171,9 @@ resource "aws_lb_target_group" "blue_tg" {
   }
 }
 
-# 11. Green Target Group (Staging State)
+# 11. Green Target Group (Renamed to v2)
 resource "aws_lb_target_group" "green_tg" {
-  name     = "tg-green-environment"
+  name     = "tg-green-environment-v2"
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.devops_vpc.id
@@ -188,7 +189,7 @@ resource "aws_lb_target_group" "green_tg" {
   }
 }
 
-# 12. ALB Listener Routing Configuration (Default Route mapping to Blue)
+# 12. ALB Listener Routing Configuration
 resource "aws_lb_listener" "http_listener" {
   load_balancer_arn = aws_lb.app_alb.arn
   port              = "80"
@@ -202,7 +203,7 @@ resource "aws_lb_listener" "http_listener" {
 
 # 13. Dynamic Target Attachments for 2 EC2 Web Servers
 resource "aws_lb_target_group_attachment" "web_attach" {
-  count            = 2  # <-- FIXED: Binds exactly 2 production nodes to ALB
+  count            = 2  
   target_group_arn = aws_lb_target_group.blue_tg.arn
   target_id        = aws_instance.web_servers[count.index].id
   port             = 80
