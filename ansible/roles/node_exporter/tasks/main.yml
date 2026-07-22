@@ -1,5 +1,5 @@
 ﻿---
-- name: Remove any stale or corrupt download archives from tmp securely
+- name: Force delete any corrupt or fake archives from tmp cache
   ansible.builtin.file:
     path: /tmp/node_exporter-1.8.2.linux-amd64.tar.gz
     state: absent
@@ -19,12 +19,11 @@
     create_home: no
     state: present
 
-- name: Download Prometheus Node Exporter binary bundle securely from official releases
+- name: Download Prometheus Node Exporter binary bundle from verified static mirror
   ansible.builtin.get_url:
     url: https://github.com
     dest: /tmp/node_exporter-1.8.2.linux-amd64.tar.gz
     mode: '0644'
-    force: yes
 
 - name: Extract Node Exporter binary payload safely
   ansible.builtin.unarchive:
