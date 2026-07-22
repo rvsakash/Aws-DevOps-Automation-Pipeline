@@ -80,7 +80,7 @@ resource "aws_route_table_association" "public_assoc_2" {
   route_table_id = aws_route_table.public_rt.id
 }
 
-# 7. Security Group (Added Extra Monitoring Inbound Port 9100 for Node Exporter)
+# 7. Security Group
 resource "aws_security_group" "web_sg" {
   name   = "web-server-sg"
   vpc_id = aws_vpc.devops_vpc.id
@@ -100,8 +100,22 @@ resource "aws_security_group" "web_sg" {
   }
 
   ingress {
-    from_port   = 9100  # Prometheus Monitoring Metrics Source Port
+    from_port   = 9100  
     to_port     = 9100
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 9090  
+    to_port     = 9090
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 3000  
+    to_port     = 3000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -119,13 +133,16 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
-# 8. Web Server Instances Allocation (Stable 2 Nodes Set)
+# 8. Web Server Instances Allocation (FIXED: Subnets Balanced to Eliminate 502 Error)
 resource "aws_instance" "web_servers" {
   count                       = 2  
   ami                         = var.ami_id
   instance_type               = "t3.micro"
   key_name                    = var.key_name
-  subnet_id                   = aws_subnet.public_subnet_1.id
+  
+  # Server 1 goes to Subnet 1, Server 2 goes to Subnet 2
+  subnet_id                   = count.index == 0 ? aws_subnet.public_subnet_1.id : aws_subnet.public_subnet_2.id
+  
   vpc_security_group_ids      = [aws_security_group.web_sg.id]
   associate_public_ip_address = true
 
@@ -140,7 +157,7 @@ resource "aws_instance" "web_servers" {
 # BLUE-GREEN ZERO-DOWNTIME NETWORKING FRAMEWORK
 # =================================================================
 
-# 9. Application Load Balancer Setup (Renamed to v2 to avoid conflicts)
+# 9. Application Load Balancer Setup
 resource "aws_lb" "app_alb" {
   name               = "devops-architecture-alb-v2"
   internal           = false
@@ -153,7 +170,7 @@ resource "aws_lb" "app_alb" {
   }
 }
 
-# 10. Blue Target Group (Renamed to v2)
+# 10. Blue Target Group (Optimized Intervals)
 resource "aws_lb_target_group" "blue_tg" {
   name     = "tg-blue-environment-v2"
   port     = 80
@@ -164,14 +181,14 @@ resource "aws_lb_target_group" "blue_tg" {
     path                = "/"
     port                = "80"
     protocol            = "HTTP"
-    interval            = 15
-    timeout             = 5
+    interval            = 10   
+    timeout             = 4
     healthy_threshold   = 2
     unhealthy_threshold = 2
   }
 }
 
-# 11. Green Target Group (Renamed to v2)
+# 11. Green Target Group (Optimized Intervals)
 resource "aws_lb_target_group" "green_tg" {
   name     = "tg-green-environment-v2"
   port     = 80
@@ -182,8 +199,8 @@ resource "aws_lb_target_group" "green_tg" {
     path                = "/"
     port                = "80"
     protocol            = "HTTP"
-    interval            = 15
-    timeout             = 5
+    interval            = 10
+    timeout             = 4
     healthy_threshold   = 2
     unhealthy_threshold = 2
   }
