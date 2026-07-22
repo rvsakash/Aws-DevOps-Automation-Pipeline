@@ -8,14 +8,11 @@ pipeline {
     }
 
     options {
-        // Yeh duplicate parallel builds ko block karega
         disableConcurrentBuilds()
     }
 
     triggers {
-        githubPush()
-        // Is filter se Jenkins hosts file ke badlao ko ignore karega aur loop toot jayega
-        pollSCM(scmpoll_spec: '* * * * *', ignorePostCommitHooks: false)
+        githubPush() 
     }
 
     stages {
