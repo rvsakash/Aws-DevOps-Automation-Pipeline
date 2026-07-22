@@ -8,13 +8,11 @@ pipeline {
     }
 
     options {
-        // Yeh line naye duplicate builds ko queue mein nahi aane degi
         disableConcurrentBuilds()
     }
 
     triggers {
-        // Aapka kal wala Poll SCM trigger jisse automation chalta rahe
-        pollSCM('H/2 * * * *') 
+        pollSCM('* * * * *') 
     }
 
     stages {
@@ -28,6 +26,8 @@ pipeline {
             steps {
                 dir('terraform') {
                     sh 'terraform init'
+                    // Yeh line AWS se chalte hue servers ki real IPs ko wapas pull karegi
+                    sh 'terraform refresh'
                     sh 'terraform apply -auto-approve'
                 }
                 dir('ansible') {
