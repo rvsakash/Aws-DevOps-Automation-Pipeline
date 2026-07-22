@@ -15,9 +15,11 @@
       - python3-pip
     state: present
 
-- name: Install Docker Engine
+- name: Install Docker Engine and Compose Plugin
   apt:
-    name: docker.io
+    name:
+      - docker.io
+      - docker-compose-v2
     state: present
   notify: Restart Docker Service
 
