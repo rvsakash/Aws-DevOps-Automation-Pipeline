@@ -1,48 +1,41 @@
 ﻿---
-- name: Deploy Prometheus Node Exporter securely
-  hosts: all
-  become: yes
-  vars:
-    node_exporter_version: '1.8.2'
+- name: Create dedicated system group for Node Exporter
+  ansible.builtin.group:
+    name: node_exporter
+    state: present
+    system: yes
 
-  tasks:
-    - name: Create group
-      ansible.builtin.group:
-        name: node_exporter
-        state: present
-        system: yes
+- name: Create dedicated system user for Node Exporter
+  ansible.builtin.user:
+    name: node_exporter
+    group: node_exporter
+    shell: /sbin/nologin
+    system: yes
+    create_home: no
+    state: present
 
-    - name: Create user
-      ansible.builtin.user:
-        name: node_exporter
-        group: node_exporter
-        shell: /sbin/nologin
-        system: yes
-        create_home: no
-        state: present
+- name: Download Prometheus Node Exporter binary bundle securely
+  ansible.builtin.get_url:
+    url: "https://github.com"
+    dest: "/tmp/node_exporter-1.8.2.linux-amd64.tar.gz"
+    mode: '0644'
 
-    - name: Download package
-      ansible.builtin.get_url:
-        url: 'https://github.com{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz'
-        dest: '/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz'
-        mode: '0644'
-
-- name: Extract tar
+- name: Extract Node Exporter binary payload
   ansible.builtin.unarchive:
-    src: '/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz'
+    src: "/tmp/node_exporter-1.8.2.linux-amd64.tar.gz"
     dest: /tmp
     remote_src: yes
 
-- name: Copy payload
+- name: Copy Node Exporter binary payload to system path
   ansible.builtin.copy:
-    src: '/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter'
+    src: "/tmp/node_exporter-1.8.2.linux-amd64/node_exporter"
     dest: /usr/local/bin/node_exporter
     mode: '0755'
     owner: node_exporter
     group: node_exporter
     remote_src: yes
 
-- name: Service file setup
+- name: Setup Systemd engine controller config for Node Exporter
   ansible.builtin.copy:
     dest: /etc/systemd/system/node_exporter.service
     content: |
@@ -62,7 +55,7 @@
       WantedBy=multi-user.target
     mode: '0644'
 
-- name: Active engine
+- name: Reload systemd configuration map and start service execution
   ansible.builtin.systemd:
     name: node_exporter
     state: started
