@@ -1,7 +1,7 @@
 ﻿---
 - name: Remove any stale or corrupt download archives from tmp securely
   ansible.builtin.file:
-    path: "/tmp/node_exporter-1.8.2.linux-amd64.tar.gz"
+    path: /tmp/node_exporter-1.8.2.linux-amd64.tar.gz
     state: absent
 
 - name: Create dedicated system group for Node Exporter
@@ -21,19 +21,20 @@
 
 - name: Download Prometheus Node Exporter binary bundle securely from official releases
   ansible.builtin.get_url:
-    url: "https://github.com"
-    dest: "/tmp/node_exporter-1.8.2.linux-amd64.tar.gz"
+    url: https://github.com
+    dest: /tmp/node_exporter-1.8.2.linux-amd64.tar.gz
     mode: '0644'
+    force: yes
 
 - name: Extract Node Exporter binary payload safely
   ansible.builtin.unarchive:
-    src: "/tmp/node_exporter-1.8.2.linux-amd64.tar.gz"
+    src: /tmp/node_exporter-1.8.2.linux-amd64.tar.gz
     dest: /tmp
     remote_src: yes
 
 - name: Copy Node Exporter binary payload to system path
   ansible.builtin.copy:
-    src: "/tmp/node_exporter-1.8.2.linux-amd64/node_exporter"
+    src: /tmp/node_exporter-1.8.2.linux-amd64/node_exporter
     dest: /usr/local/bin/node_exporter
     mode: '0755'
     owner: node_exporter
