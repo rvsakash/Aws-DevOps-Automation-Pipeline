@@ -4,6 +4,7 @@ pipeline {
     environment {
         AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+        AWS_DEFAULT_REGION    = 'us-east-1'
         ANSIBLE_HOST_KEY_CHECKING = 'False'
     }
 
@@ -26,14 +27,13 @@ pipeline {
             steps {
                 dir('terraform') {
                     sh 'terraform init'
-                    // Yeh line AWS se chalte hue servers ki real IPs ko wapas pull karegi
-                    sh 'terraform refresh'
                     sh 'terraform apply -auto-approve'
                 }
                 dir('ansible') {
                     sh 'echo "[webserver]" > hosts'
                     sh 'echo "[tags_Role_webserver]" >> hosts'
-                    sh 'terraform -chdir=../terraform output -json instance_public_ips | jq -r ".[]" >> hosts'
+                    // Bulletproof Fix: Seedhe AWS API se live IPs nikal kar hosts file mein dalo
+                    sh 'aws ec2 describe-instances --filters "Name=tag:Role,Values=webserver" "Name=instance-state-name,Values=running" --query "Reservations[*].Instances[*].PublicIpAddress" --output json | jq -r ".[][]" >> hosts'
                     sh 'cat hosts'
                 }
             }
@@ -67,4 +67,4 @@ pipeline {
     }
 }
 
-// Force push change trigger
+// AWS CLI Live IP Discovery Patch
