@@ -38,18 +38,19 @@
                 - /home/ubuntu/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
               ports:
                 - "9090:9090"
+              # EXTRA BRIDGE NETWORK LINK STABILIZATION
+              networks:
+                - monitoring-network
               restart: always
             grafana:
               image: grafana/grafana:latest
               container_name: pipeline-grafana-engine
               ports:
                 - "3000:3000"
+              networks:
+                - monitoring-network
               restart: always
-        owner: ubuntu
-        group: ubuntu
-        mode: '0644'
 
-    - name: Spin up monitoring docker-compose application deployment pipeline
-      community.docker.docker_compose_v2:
-        project_src: /home/ubuntu/monitoring
-        state: present
+          networks:
+            monitoring-network:
+              driver: bridge
