@@ -1,0 +1,70 @@
+﻿---
+- name: Deploy Prometheus Node Exporter securely
+  hosts: all
+  become: yes
+  vars:
+    node_exporter_version: '1.8.2'
+
+  tasks:
+    - name: Create group
+      ansible.builtin.group:
+        name: node_exporter
+        state: present
+        system: yes
+
+    - name: Create user
+      ansible.builtin.user:
+        name: node_exporter
+        group: node_exporter
+        shell: /sbin/nologin
+        system: yes
+        create_home: no
+        state: present
+
+    - name: Download package
+      ansible.builtin.get_url:
+        url: 'https://github.com{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz'
+        dest: '/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz'
+        mode: '0644'
+
+- name: Extract tar
+  ansible.builtin.unarchive:
+    src: '/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz'
+    dest: /tmp
+    remote_src: yes
+
+- name: Copy payload
+  ansible.builtin.copy:
+    src: '/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter'
+    dest: /usr/local/bin/node_exporter
+    mode: '0755'
+    owner: node_exporter
+    group: node_exporter
+    remote_src: yes
+
+- name: Service file setup
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/node_exporter.service
+    content: |
+      [Unit]
+      Description=Prometheus Node Exporter Daemon
+      Wants=network-online.target
+      After=network-online.target
+
+      [Service]
+      User=node_exporter
+      Group=node_exporter
+      Type=simple
+      ExecStart=/usr/local/bin/node_exporter
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+
+- name: Active engine
+  ansible.builtin.systemd:
+    name: node_exporter
+    state: started
+    enabled: yes
+    daemon_reload: yes
