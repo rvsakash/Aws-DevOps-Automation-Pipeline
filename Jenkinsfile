@@ -7,9 +7,15 @@ pipeline {
         ANSIBLE_HOST_KEY_CHECKING = 'False'
     }
 
+    options {
+        // Yeh duplicate parallel builds ko block karega
+        disableConcurrentBuilds()
+    }
+
     triggers {
         githubPush()
-        pollSCM('* * * * *') 
+        // Is filter se Jenkins hosts file ke badlao ko ignore karega aur loop toot jayega
+        pollSCM(scmpoll_spec: '* * * * *', ignorePostCommitHooks: false)
     }
 
     stages {
@@ -25,12 +31,11 @@ pipeline {
                     sh 'terraform init'
                     sh 'terraform apply -auto-approve'
                 }
-                // We create the hosts file precisely inside the ansible directory by changing directory first
                 dir('ansible') {
                     sh 'echo "[webserver]" > hosts'
                     sh 'echo "[tags_Role_webserver]" >> hosts'
                     sh 'terraform -chdir=../terraform output -json instance_public_ips | jq -r ".[]" >> hosts'
-                    sh 'cat hosts' // This will print the file in logs so we can verify live!
+                    sh 'cat hosts'
                 }
             }
         }
