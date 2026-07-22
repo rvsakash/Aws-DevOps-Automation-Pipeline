@@ -8,11 +8,13 @@ pipeline {
     }
 
     options {
+        // Yeh line naye duplicate builds ko queue mein nahi aane degi
         disableConcurrentBuilds()
     }
 
     triggers {
-        githubPush() 
+        // Aapka kal wala Poll SCM trigger jisse automation chalta rahe
+        pollSCM('H/2 * * * *') 
     }
 
     stages {
