@@ -1,0 +1,43 @@
+---
+- name: Download Prometheus Node Exporter binary repository securely
+  get_url:
+    url: https://github.com
+    dest: /tmp/node_exporter.tar.gz
+    mode: '0644'
+
+- name: Extract Node Exporter binary bundle
+  unarchive:
+    src: /tmp/node_exporter.tar.gz
+    dest: /tmp
+    remote_src: yes
+
+- name: Copy Node Exporter binary payload to system execution path
+  copy:
+    src: /tmp/node_exporter-1.8.2.linux-amd64/node_exporter
+    dest: /usr/local/bin/node_exporter
+    mode: '0755'
+    remote_src: yes
+
+- name: Setup Systemd engine controller config for Node Exporter
+  copy:
+    dest: /etc/systemd/system/node_exporter.service
+    content: |
+      [Unit]
+      Description=Prometheus Node Exporter Daemon
+      Wants=network-online.target
+      After=network-online.target
+
+      [Service]
+      User=root
+      ExecStart=/usr/local/bin/node_exporter
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+
+- name: Reload systemd configuration map, start and enable service execution
+  systemd:
+    name: node_exporter
+    state: started
+    enabled: yes
+    daemon_reload: yes
