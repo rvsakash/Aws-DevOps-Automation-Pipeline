@@ -30,7 +30,6 @@ pipeline {
                 }
                 dir('ansible') {
                     sh 'echo "[webserver]" > hosts'
-                    // Standard Terraform fallback command jo 100% chalegi
                     sh 'terraform -chdir=../terraform output -json instance_public_ips | jq -r ".[]" >> hosts'
                     sh 'cat hosts'
                 }
@@ -45,6 +44,23 @@ pipeline {
                             sh 'echo "$VAULT_PASS" > .vault_pass.txt'
                             sh 'ansible-playbook -i hosts deploy-playbook.yml --user ubuntu --vault-password-file .vault_pass.txt'
                             sh 'rm -f .vault_pass.txt'
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---- NEW AUTOMATED MONITORING STAGE INTEGRATED ----
+        stage('Monitoring Stack Deployment') {
+            steps {
+                withCredentials([string(credentialsId: 'ANSIBLE_VAULT_PASSWORD', variable: 'VAULT_PASS')]) {
+                    sshagent(['ec2-ssh-key']) {
+                        dir('ansible') {
+                            sh 'echo "$VAULT_PASS" > .vault_pass.txt'
+                            sh 'ansible-playbook -i hosts deploy-monitoring.yml --user ubuntu --vault-password-file .vault_pass.txt'
+                            sh 'rm -f .vault_pass.txt'
+                            echo 'Cooling down for AWS Target Group health stabilization routing...'
+                            sh 'sleep 15' 
                         }
                     }
                 }
