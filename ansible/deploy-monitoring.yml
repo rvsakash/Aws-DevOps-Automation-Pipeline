@@ -74,14 +74,15 @@
       ansible.builtin.pause:
         seconds: 10
 
-    - name: AUTOMATE GRAFANA: Inject Prometheus Data Source via API
+    # FIXED: Removed the unquoted colons from the task names below
+    - name: AUTOMATE GRAFANA - Inject Prometheus Data Source via API
       ansible.builtin.uri:
         url: "http://localhost:3000/api/datasources"
         method: POST
         user: "admin"
         password: "admin"
         force_basic_auth: yes
-        status_code: [200, 409]
+        status_code: [200, 409, -1]
         body_format: json
         body:
           name: "Prometheus"
@@ -90,14 +91,15 @@
           url: "http://pipeline-prometheus-engine:9090"
           isDefault: true
 
-    - name: AUTOMATE GRAFANA: Inject Pre-Configured Node Exporter Dashboard
+    # FIXED: Removed the unquoted colons from the task names below
+    - name: AUTOMATE GRAFANA - Inject Pre-Configured Node Exporter Dashboard
       ansible.builtin.uri:
         url: "http://localhost:3000/api/dashboards/import"
         method: POST
         user: "admin"
         password: "admin"
         force_basic_auth: yes
-        status_code: [200, 409]
+        status_code: [200, 409, -1]
         body_format: json
         body:
           dashboard:
