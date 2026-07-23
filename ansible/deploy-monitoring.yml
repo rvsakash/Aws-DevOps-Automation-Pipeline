@@ -1,18 +1,20 @@
 ---
-- name: Automate Centralized Prometheus and Grafana Stack on Jenkins Master
-  hosts: localhost
-  connection: local
+- name: Automate Centralized Prometheus and Grafana Stack on Selected Web Server
+  hosts: aws_ec2 # Targets remote EC2 nodes where Docker works perfectly
+  become: yes
   gather_facts: yes
   tasks:
-    - name: Construct central monitoring environment directory on Master
+    - name: Construct central monitoring environment directory on Target
       ansible.builtin.file:
-        path: "/var/lib/jenkins/monitoring"
+        path: "/home/ubuntu/monitoring"
         state: directory
+        owner: ubuntu
+        group: ubuntu
         mode: '0755'
 
     - name: Generate DYNAMIC Prometheus collection configuration map
       ansible.builtin.copy:
-        dest: "/var/lib/jenkins/monitoring/prometheus.yml"
+        dest: "/home/ubuntu/monitoring/prometheus.yml"
         content: |
           global:
             scrape_interval: 5s
@@ -20,11 +22,13 @@
             - job_name: 'node_exporter_metrics'
               static_configs:
                 - targets: [ {% for host in groups['aws_ec2'] %}'{{ host }}:9100'{% if not loop.last %}, {% endif %}{% endfor %} ]
+        owner: ubuntu
+        group: ubuntu
         mode: '0644'
 
     - name: Generate multi container deployment manifest map with Auto-Provisioning
       ansible.builtin.copy:
-        dest: "/var/lib/jenkins/monitoring/docker-compose.yml"
+        dest: "/home/ubuntu/monitoring/docker-compose.yml"
         content: |
           version: '3.8'
           services:
@@ -35,7 +39,7 @@
                 - '--config.file=/etc/prometheus/prometheus.yml'
                 - '--storage.tsdb.path=/prometheus'
               volumes:
-                - /var/lib/jenkins/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+                - /home/ubuntu/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
               ports:
                 - "9090:9090"
               networks:
@@ -61,6 +65,8 @@
 
           volumes:
             grafana-storage:
+        owner: ubuntu
+        group: ubuntu
         mode: '0644'
 
     - name: Launch Centralized Monitoring Stack via Native Docker Compose
@@ -68,13 +74,12 @@
         docker compose down --remove-orphans
         docker compose up -d
       args:
-        chdir: "/var/lib/jenkins/monitoring"
+        chdir: "/home/ubuntu/monitoring"
 
-    - name: Wait 10 seconds for Grafana API Engine to stabilize
+    - name: Wait 15 seconds for Grafana API Engine to stabilize
       ansible.builtin.pause:
-        seconds: 10
+        seconds: 15
 
-    # FIXED: Removed the unquoted colons from the task names below
     - name: AUTOMATE GRAFANA - Inject Prometheus Data Source via API
       ansible.builtin.uri:
         url: "http://localhost:3000/api/datasources"
@@ -82,7 +87,7 @@
         user: "admin"
         password: "admin"
         force_basic_auth: yes
-        status_code: [200, 409, -1]
+        status_code: [200, 409]
         body_format: json
         body:
           name: "Prometheus"
@@ -91,7 +96,6 @@
           url: "http://pipeline-prometheus-engine:9090"
           isDefault: true
 
-    # FIXED: Removed the unquoted colons from the task names below
     - name: AUTOMATE GRAFANA - Inject Pre-Configured Node Exporter Dashboard
       ansible.builtin.uri:
         url: "http://localhost:3000/api/dashboards/import"
@@ -99,7 +103,7 @@
         user: "admin"
         password: "admin"
         force_basic_auth: yes
-        status_code: [200, 409, -1]
+        status_code: [200, 409]
         body_format: json
         body:
           dashboard:

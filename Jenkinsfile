@@ -5,7 +5,6 @@ pipeline {
         AWS_ACCESS_KEY_ID         = credentials('AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY     = credentials('AWS_SECRET_ACCESS_KEY')
         ANSIBLE_HOST_KEY_CHECKING = 'False'
-        // CRITICAL AUTOMATION FIX: Forces Terraform to strictly use IPv4 globally to bypass GitHub/Registry network hangs
         GODEBUG                   = 'netdns=go'
     }
 
@@ -27,7 +26,6 @@ pipeline {
         stage('Terraform Apply') {
             steps {
                 dir('terraform') {
-                    // Cleans any corrupted plugin schemas files safely
                     sh 'rm -rf .terraform .terraform.lock.hcl'
                     sh 'terraform init'
                     sh 'terraform plan -out=tfplan -compact-warnings'
