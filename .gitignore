@@ -1,4 +1,5 @@
-ansible/hosts
 .terraform/
+*.tfplan
 *.tfstate
 *.tfstate.backup
+.vault_pass.txt

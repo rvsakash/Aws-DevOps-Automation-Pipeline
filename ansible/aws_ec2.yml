@@ -8,7 +8,8 @@ filters:
 
 keyed_groups:
   - key: tags.Role
-    prefix: tags_Role
+    prefix: ""
+    separator: ""
 
 hostnames:
   - public-ip-address

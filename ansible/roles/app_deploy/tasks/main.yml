@@ -1,6 +1,6 @@
 ---
 - name: Manage App Directory Structure
-  file:
+  ansible.builtin.file:
     path: /home/ubuntu/app
     state: directory
     owner: ubuntu
@@ -8,7 +8,7 @@
     mode: '0755'
 
 - name: Deploy application source code
-  copy:
+  ansible.builtin.copy:
     src: ../app/index.html
     dest: /home/ubuntu/app/index.html
     owner: ubuntu

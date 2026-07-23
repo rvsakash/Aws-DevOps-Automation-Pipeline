@@ -1,11 +1,11 @@
 ---
 - name: Update apt index securely
-  apt:
+  ansible.builtin.apt:
     update_cache: yes
     force_apt_get: yes
 
 - name: Install required baseline packages
-  apt:
+  ansible.builtin.apt:
     name:
       - apt-transport-https
       - ca-certificates
@@ -16,15 +16,14 @@
     state: present
 
 - name: Install Docker Engine and Compose Plugin
-  apt:
+  ansible.builtin.apt:
     name:
       - docker.io
       - docker-compose-v2
     state: present
-  notify: Restart Docker Service
 
 - name: Ensure Docker is enabled on boot
-  service:
+  ansible.builtin.service:
     name: docker
     state: started
     enabled: yes

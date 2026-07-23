@@ -4,7 +4,7 @@
   become: yes
   tasks:
     - name: Construct central monitoring environment directory
-      file:
+      ansible.builtin.file:
         path: /home/ubuntu/monitoring
         state: directory
         owner: ubuntu
@@ -12,7 +12,7 @@
         mode: '0755'
 
     - name: Generate DYNAMIC Prometheus collection configuration map
-      copy:
+      ansible.builtin.copy:
         dest: /home/ubuntu/monitoring/prometheus.yml
         content: |
           global:
@@ -26,7 +26,7 @@
         mode: '0644'
 
     - name: Generate multi container deployment manifest map
-      copy:
+      ansible.builtin.copy:
         dest: /home/ubuntu/monitoring/docker-compose.yml
         content: |
           version: '3.8'

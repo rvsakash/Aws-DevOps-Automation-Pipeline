@@ -21,9 +21,10 @@
 
 - name: Download Prometheus Node Exporter binary bundle from verified static mirror
   ansible.builtin.get_url:
-    url: https://github.com
+    url: "https://github.com"
     dest: /tmp/node_exporter-1.8.2.linux-amd64.tar.gz
     mode: '0644'
+    force: yes  # Overwrites broken cached artifacts securely
 
 - name: Extract Node Exporter binary payload safely
   ansible.builtin.unarchive:
