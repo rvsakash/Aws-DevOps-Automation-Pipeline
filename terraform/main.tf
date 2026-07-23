@@ -150,8 +150,6 @@ resource "aws_instance" "web_servers" {
   vpc_security_group_ids      = [aws_security_group.web_sg.id]
   associate_public_ip_address = true
 
-  # CRITICAL INTERVIEWER HIGHLIGHT: Stops Terraform from deleting your instances 
-  # when you stop/start them manually.
   lifecycle {
     ignore_changes = [
       instance_state,
@@ -165,9 +163,9 @@ resource "aws_instance" "web_servers" {
   }
 }
 
-# 9. Application Load Balancer Setup
+# 9. Application Load Balancer Setup (BUMPED TO V3)
 resource "aws_lb" "app_alb" {
-  name               = "devops-architecture-alb-v2"
+  name               = "devops-architecture-alb-v3"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.web_sg.id]
@@ -178,9 +176,9 @@ resource "aws_lb" "app_alb" {
   }
 }
 
-# 10. Blue Target Group
+# 10. Blue Target Group (BUMPED TO V3)
 resource "aws_lb_target_group" "blue_tg" {
-  name     = "tg-blue-environment-v2"
+  name     = "tg-blue-environment-v3"
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.devops_vpc.id
@@ -196,9 +194,9 @@ resource "aws_lb_target_group" "blue_tg" {
   }
 }
 
-# 11. Green Target Group
+# 11. Green Target Group (BUMPED TO V3)
 resource "aws_lb_target_group" "green_tg" {
-  name     = "tg-green-environment-v2"
+  name     = "tg-green-environment-v3"
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.devops_vpc.id
