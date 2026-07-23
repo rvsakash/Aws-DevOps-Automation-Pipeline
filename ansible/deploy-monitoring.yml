@@ -6,13 +6,13 @@
   tasks:
     - name: Construct central monitoring environment directory on Master
       ansible.builtin.file:
-        path: "/home/jenkins/monitoring"
+        path: "/var/lib/jenkins/monitoring"
         state: directory
         mode: '0755'
 
     - name: Generate DYNAMIC Prometheus collection configuration map
       ansible.builtin.copy:
-        dest: "/home/jenkins/monitoring/prometheus.yml"
+        dest: "/var/lib/jenkins/monitoring/prometheus.yml"
         content: |
           global:
             scrape_interval: 5s
@@ -24,7 +24,7 @@
 
     - name: Generate multi container deployment manifest map with Auto-Provisioning
       ansible.builtin.copy:
-        dest: "/home/jenkins/monitoring/docker-compose.yml"
+        dest: "/var/lib/jenkins/monitoring/docker-compose.yml"
         content: |
           version: '3.8'
           services:
@@ -35,7 +35,7 @@
                 - '--config.file=/etc/prometheus/prometheus.yml'
                 - '--storage.tsdb.path=/prometheus'
               volumes:
-                - /home/jenkins/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+                - /var/lib/jenkins/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
               ports:
                 - "9090:9090"
               networks:
@@ -63,10 +63,12 @@
             grafana-storage:
         mode: '0644'
 
-    - name: Launch Centralized Monitoring Stack via Docker Compose
-      community.docker.docker_compose_v2:
-        project_src: "/home/jenkins/monitoring"
-        state: present
+    - name: Launch Centralized Monitoring Stack via Native Docker Compose
+      ansible.builtin.shell: |
+        docker compose down --remove-orphans
+        docker compose up -d
+      args:
+        chdir: "/var/lib/jenkins/monitoring"
 
     - name: Wait 10 seconds for Grafana API Engine to stabilize
       ansible.builtin.pause:
@@ -88,14 +90,14 @@
           url: "http://pipeline-prometheus-engine:9090"
           isDefault: true
 
-    - name: AUTOMATE GRAFANA: Inject Pre-Configured Node Exporter Dashboard (ID 1860)
+    - name: AUTOMATE GRAFANA: Inject Pre-Configured Node Exporter Dashboard
       ansible.builtin.uri:
         url: "http://localhost:3000/api/dashboards/import"
         method: POST
         user: "admin"
         password: "admin"
         force_basic_auth: yes
-        status_code: [200, 422]
+        status_code: [200, 409]
         body_format: json
         body:
           dashboard:
