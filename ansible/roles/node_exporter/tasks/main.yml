@@ -1,5 +1,5 @@
 ﻿---
-- name: Force delete any corrupt or fake archives from tmp cache
+- name: Clean stale and corrupted artifacts from tmp directory
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent
@@ -22,21 +22,23 @@
     create_home: no
     state: present
 
-# FIXED: Yeh perfect official software download link hai jo real package stream fetch karega
-- name: Download Prometheus Node Exporter binary bundle securely via curl
-  ansible.builtin.shell: |
-    curl -sSL "https://github.com" -o /tmp/node_exporter-1.8.2.linux-amd64.tar.gz
+- name: Download Prometheus Node Exporter archive bundle safely
+  ansible.builtin.get_url:
+    url: "https://github.com"
+    dest: "/tmp/node_exporter-1.8.2.linux-amd64.tar.gz"
+    mode: '0644'
+    force: yes
 
-- name: Extract Node Exporter binary payload safely via native tar tool
-  ansible.builtin.shell: |
-    tar -xzf /tmp/node_exporter-1.8.2.linux-amd64.tar.gz -C /tmp/
-  args:
-    creates: /tmp/node_exporter-1.8.2.linux-amd64/node_exporter
+- name: Extract Node Exporter source payload securely
+  ansible.builtin.unarchive:
+    src: "/tmp/node_exporter-1.8.2.linux-amd64.tar.gz"
+    dest: "/tmp"
+    remote_src: yes
 
 - name: Copy Node Exporter binary payload to system path
   ansible.builtin.copy:
-    src: /tmp/node_exporter-1.8.2.linux-amd64/node_exporter
-    dest: /usr/local/bin/node_exporter
+    src: "/tmp/node_exporter-1.8.2.linux-amd64/node_exporter"
+    dest: "/usr/local/bin/node_exporter"
     mode: '0755'
     owner: node_exporter
     group: node_exporter
