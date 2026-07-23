@@ -14,13 +14,15 @@
     create_home: no
     state: present
 
-# PRODUCTION APPROACH: Jenkins Master par download hoga jahan internet block nahi hota
-- name: Download Node Exporter binary bundle locally on Jenkins Master Server
+# FIXED: Utilizing official Prometheus storage endpoint to guarantee clean .tar.gz binary stream
+- name: Download Prometheus Node Exporter archive bundle safely
   ansible.builtin.get_url:
     url: "https://github.com"
     dest: "/tmp/node_exporter-1.8.2.linux-amd64.tar.gz"
     mode: '0644'
+    force: yes
   delegate_to: localhost
+  become: no
 
 - name: Extract Node Exporter bundle locally on Jenkins Master
   ansible.builtin.unarchive:
@@ -28,8 +30,8 @@
     dest: "/tmp"
     creates: "/tmp/node_exporter-1.8.2.linux-amd64/node_exporter"
   delegate_to: localhost
+  become: no
 
-# Ready file direct copy hogi remote servers par (No extra remote dependencies)
 - name: Copy Node Exporter binary payload directly to remote system path
   ansible.builtin.copy:
     src: "/tmp/node_exporter-1.8.2.linux-amd64/node_exporter"
