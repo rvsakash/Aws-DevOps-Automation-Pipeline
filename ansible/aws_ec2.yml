@@ -11,5 +11,7 @@ keyed_groups:
     prefix: ""
     separator: ""
 
+# FIXED: Standard structural parameter array for real dynamic IPs parsing
 hostnames:
+  - ip-address
   - public-ip-address
