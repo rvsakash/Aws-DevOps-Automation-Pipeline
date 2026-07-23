@@ -9,7 +9,6 @@ pipeline {
 
     options {
         disableConcurrentBuilds()
-        ansiColor('xterm')
     }
 
     triggers {
