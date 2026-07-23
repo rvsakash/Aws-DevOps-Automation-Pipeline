@@ -25,8 +25,9 @@ pipeline {
         stage('Terraform Apply') {
             steps {
                 dir('terraform') {
+                    // FIXED: Cleans any corrupted plugin files before starting init
+                    sh 'rm -rf .terraform .terraform.lock.hcl'
                     sh 'terraform init'
-                    // Fixes long console freeze bugs by compiling via native plan artifacts
                     sh 'terraform plan -out=tfplan -compact-warnings'
                     sh 'terraform apply -compact-warnings tfplan'
                 }
@@ -39,7 +40,6 @@ pipeline {
                     sshagent(['ec2-ssh-key']) {
                         dir('ansible') {
                             sh 'echo "$VAULT_PASS" > .vault_pass.txt'
-                            // Target passes via clean ec2 configuration file aws_ec2.yml instead of custom hardcoded hosts maps
                             sh 'ansible-playbook -i aws_ec2.yml deploy-playbook.yml --user ubuntu --vault-password-file .vault_pass.txt'
                             sh 'rm -f .vault_pass.txt'
                         }
