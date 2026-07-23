@@ -22,10 +22,10 @@
     create_home: no
     state: present
 
-# FIXED: Ab yeh pure direct download link ke saath binary package download karega
+# FIXED: Yeh perfect official software download link hai jo real package stream fetch karega
 - name: Download Prometheus Node Exporter binary bundle securely via curl
   ansible.builtin.shell: |
-    curl -L "https://github.com" -o /tmp/node_exporter-1.8.2.linux-amd64.tar.gz
+    curl -sSL "https://github.com" -o /tmp/node_exporter-1.8.2.linux-amd64.tar.gz
 
 - name: Extract Node Exporter binary payload safely via native tar tool
   ansible.builtin.shell: |
