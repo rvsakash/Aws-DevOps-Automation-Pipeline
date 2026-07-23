@@ -1,6 +1,6 @@
 ---
 - name: Automate Infrastructure Prometheus and Grafana Stack Installation
-  hosts: webserver
+  hosts: aws_ec2  # FIXED: Matched with dynamic inventory naming convention
   become: yes
   tasks:
     - name: Construct central monitoring environment directory
@@ -20,7 +20,7 @@
           scrape_configs:
             - job_name: 'node_exporter_metrics'
               static_configs:
-                - targets: [ {% for host in groups['webserver'] %}'{{ host }}:9100'{% if not loop.last %}, {% endif %}{% endfor %} ]
+                - targets: [ {% for host in groups['aws_ec2'] %}'{{ host }}:9100'{% if not loop.last %}, {% endif %}{% endfor %} ]
         owner: ubuntu
         group: ubuntu
         mode: '0644'

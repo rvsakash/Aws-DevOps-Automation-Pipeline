@@ -1,12 +1,4 @@
 ﻿---
-- name: Clean stale and corrupted artifacts from tmp directory
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: absent
-  with_items:
-    - "/tmp/node_exporter-1.8.2.linux-amd64.tar.gz"
-    - "/tmp/node_exporter-1.8.2.linux-amd64"
-
 - name: Create dedicated system group for Node Exporter
   ansible.builtin.group:
     name: node_exporter
@@ -22,29 +14,29 @@
     create_home: no
     state: present
 
-# PRODUCTION FALLBACK: Bypassing GitHub TLS overhead via explicit safe mirror asset channel
-- name: Download Prometheus Node Exporter archive bundle safely via explicit network channel
+# PRODUCTION APPROACH: Jenkins Master par download hoga jahan internet block nahi hota
+- name: Download Node Exporter binary bundle locally on Jenkins Master Server
   ansible.builtin.get_url:
-    url: "https://prometheus.io"
+    url: "https://github.com"
     dest: "/tmp/node_exporter-1.8.2.linux-amd64.tar.gz"
     mode: '0644'
-    force: yes
-    validate_certs: no  # Secures execution against stale openSSL engine components inside instances
+  delegate_to: localhost
 
-- name: Extract Node Exporter source payload securely
+- name: Extract Node Exporter bundle locally on Jenkins Master
   ansible.builtin.unarchive:
     src: "/tmp/node_exporter-1.8.2.linux-amd64.tar.gz"
     dest: "/tmp"
-    remote_src: yes
+    creates: "/tmp/node_exporter-1.8.2.linux-amd64/node_exporter"
+  delegate_to: localhost
 
-- name: Copy Node Exporter binary payload to system path
+# Ready file direct copy hogi remote servers par (No extra remote dependencies)
+- name: Copy Node Exporter binary payload directly to remote system path
   ansible.builtin.copy:
     src: "/tmp/node_exporter-1.8.2.linux-amd64/node_exporter"
     dest: "/usr/local/bin/node_exporter"
     mode: '0755'
     owner: node_exporter
     group: node_exporter
-    remote_src: yes
 
 - name: Setup Systemd engine controller config for Node Exporter
   ansible.builtin.copy:

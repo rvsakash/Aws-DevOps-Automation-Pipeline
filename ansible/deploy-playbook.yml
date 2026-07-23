@@ -1,6 +1,6 @@
 ---
 - name: Production Deployment with Rolling Updates and Roles
-  hosts: webserver
+  hosts: aws_ec2  # FIXED: Targets real-time discoverable cloud hosts group
   become: yes
   roles:
     - docker_install
