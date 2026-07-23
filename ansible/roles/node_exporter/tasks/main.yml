@@ -1,8 +1,11 @@
 ﻿---
 - name: Force delete any corrupt or fake archives from tmp cache
   ansible.builtin.file:
-    path: /tmp/node_exporter-1.8.2.linux-amd64.tar.gz
+    path: "{{ item }}"
     state: absent
+  with_items:
+    - "/tmp/node_exporter-1.8.2.linux-amd64.tar.gz"
+    - "/tmp/node_exporter-1.8.2.linux-amd64"
 
 - name: Create dedicated system group for Node Exporter
   ansible.builtin.group:
@@ -19,16 +22,12 @@
     create_home: no
     state: present
 
-# FIXED: GitHub redirection skip karne ke liye direct Prometheus verified storage backend use kiya hai
-- name: Download Prometheus Node Exporter binary bundle from verified static mirror
-  ansible.builtin.get_url:
-    url: "https://github.com"
-    dest: /tmp/node_exporter-1.8.2.linux-amd64.tar.gz
-    mode: '0644'
-    force: yes
+# FIXED: Ab yeh pure direct download link ke saath binary package download karega
+- name: Download Prometheus Node Exporter binary bundle securely via curl
+  ansible.builtin.shell: |
+    curl -L "https://github.com" -o /tmp/node_exporter-1.8.2.linux-amd64.tar.gz
 
-# FIXED: Native module integration verification drop buffer logic bypassing tar flags
-- name: Extract Node Exporter binary payload safely via shell command index
+- name: Extract Node Exporter binary payload safely via native tar tool
   ansible.builtin.shell: |
     tar -xzf /tmp/node_exporter-1.8.2.linux-amd64.tar.gz -C /tmp/
   args:
