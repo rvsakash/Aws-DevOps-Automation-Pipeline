@@ -1,19 +1,18 @@
 ---
-- name: Automate Infrastructure Prometheus and Grafana Stack Installation
-  hosts: aws_ec2  # FIXED: Matched with dynamic inventory naming convention
-  become: yes
+- name: Automate Centralized Prometheus and Grafana Stack on Jenkins Master
+  hosts: localhost
+  connection: local
+  gather_facts: yes
   tasks:
-    - name: Construct central monitoring environment directory
+    - name: Construct central monitoring environment directory on Master
       ansible.builtin.file:
-        path: /home/ubuntu/monitoring
+        path: "/home/jenkins/monitoring"
         state: directory
-        owner: ubuntu
-        group: ubuntu
         mode: '0755'
 
     - name: Generate DYNAMIC Prometheus collection configuration map
       ansible.builtin.copy:
-        dest: /home/ubuntu/monitoring/prometheus.yml
+        dest: "/home/jenkins/monitoring/prometheus.yml"
         content: |
           global:
             scrape_interval: 5s
@@ -21,13 +20,11 @@
             - job_name: 'node_exporter_metrics'
               static_configs:
                 - targets: [ {% for host in groups['aws_ec2'] %}'{{ host }}:9100'{% if not loop.last %}, {% endif %}{% endfor %} ]
-        owner: ubuntu
-        group: ubuntu
         mode: '0644'
 
-    - name: Generate multi container deployment manifest map
+    - name: Generate multi container deployment manifest map with Auto-Provisioning
       ansible.builtin.copy:
-        dest: /home/ubuntu/monitoring/docker-compose.yml
+        dest: "/home/jenkins/monitoring/docker-compose.yml"
         content: |
           version: '3.8'
           services:
@@ -38,12 +35,13 @@
                 - '--config.file=/etc/prometheus/prometheus.yml'
                 - '--storage.tsdb.path=/prometheus'
               volumes:
-                - /home/ubuntu/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+                - /home/jenkins/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
               ports:
                 - "9090:9090"
               networks:
                 - monitoring-network
               restart: always
+
             grafana:
               image: grafana/grafana:latest
               container_name: pipeline-grafana-engine
@@ -51,8 +49,65 @@
                 - "3000:3000"
               networks:
                 - monitoring-network
+              environment:
+                - GF_SECURITY_ADMIN_PASSWORD=admin
+              volumes:
+                - grafana-storage:/var/lib/grafana
               restart: always
 
           networks:
             monitoring-network:
               driver: bridge
+
+          volumes:
+            grafana-storage:
+        mode: '0644'
+
+    - name: Launch Centralized Monitoring Stack via Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: "/home/jenkins/monitoring"
+        state: present
+
+    - name: Wait 10 seconds for Grafana API Engine to stabilize
+      ansible.builtin.pause:
+        seconds: 10
+
+    - name: AUTOMATE GRAFANA: Inject Prometheus Data Source via API
+      ansible.builtin.uri:
+        url: "http://localhost:3000/api/datasources"
+        method: POST
+        user: "admin"
+        password: "admin"
+        force_basic_auth: yes
+        status_code: [200, 409]
+        body_format: json
+        body:
+          name: "Prometheus"
+          type: "prometheus"
+          access: "proxy"
+          url: "http://pipeline-prometheus-engine:9090"
+          isDefault: true
+
+    - name: AUTOMATE GRAFANA: Inject Pre-Configured Node Exporter Dashboard (ID 1860)
+      ansible.builtin.uri:
+        url: "http://localhost:3000/api/dashboards/import"
+        method: POST
+        user: "admin"
+        password: "admin"
+        force_basic_auth: yes
+        status_code: [200, 422]
+        body_format: json
+        body:
+          dashboard:
+            id: null
+            title: "Linux Node Exporter Full Automation"
+            tags: ["templated"]
+            timezone: "browser"
+            schemaVersion: 16
+            version: 1
+            refresh: "5s"
+          inputs:
+            - name: "DS_PROMETHEUS"
+              type: "datasource"
+              pluginId: "prometheus"
+              value: "Prometheus"
